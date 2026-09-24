@@ -1,5 +1,11 @@
 # Story Time — Agent Context (for opencode sessions)
 
+Heads-up to agents: The user's personal Memory file (who Zach is, how he likes
+to work) lives at
+`C:\Users\zache\Documents\Z-2nd-Mind\Z2ndMind\6 MEMORY\AI User Information Zach\Zach-Memory.md`.
+It is auto-loaded each session via the global opencode config; if you cannot
+find its guidance in context, read it.
+
 Handoff notes for continuing this project. Read this before any session.
 For full in-depth design history and function-by-function detail, see
 `PROJECT_NOTES.md` in this same folder — it is the authoritative design doc.

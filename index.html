@@ -357,6 +357,130 @@ async function configGet(key){
   });
 }
 
+/* ---------------- online library (story folders hosted on this website) ----------------
+   Stories can live in a `books` folder that is published with this website (GitHub
+   Pages). The app lists that folder with the GitHub API, then streams each story's
+   meta/cover/audio straight from the site. No folder-picker needed, so it works on
+   any device — including iPhones. Favourites/order for online books are remembered
+   on the device itself (the website's folder can't be rewritten from a browser).
+   ----------------------------------------------------------------------------------- */
+const DEFAULT_ONLINE_SOURCE = { owner: 'zacheryfunch', repo: 'i-story-app', path: 'books' };
+const ONLINE_PREFS_KEY = 'onlinePrefs';
+let onlineMode = false;
+
+async function onlineSource(){
+  try{
+    const saved = await configGet('onlineSource');
+    if (saved && saved.owner && saved.repo) return Object.assign({}, DEFAULT_ONLINE_SOURCE, saved);
+  }catch(e){}
+  return Object.assign({}, DEFAULT_ONLINE_SOURCE);
+}
+
+function githubUrlToSource(url){
+  const m = /github\.com\/([^/]+)\/([^/#]+)/.exec(url || '');
+  if (m) return { owner: m[1], repo: m[2].replace(/\.git$/,'') };
+  return null;
+}
+
+async function onlineSiteBase(){
+  const host = location.hostname;
+  const hostSplit = host.split('.');
+  if (hostSplit.length >= 3 && host.endsWith('github.io')){
+    const owner = hostSplit[0];
+    const repo = (location.pathname.split('/').filter(Boolean)[0]) || '';
+    return 'https://' + host + '/' + (repo ? repo + '/' : '');
+  }
+  const src = await onlineSource();
+  return 'https://' + src.owner + '.github.io/' + src.repo + '/';
+}
+
+async function setOnlineMode(on){
+  onlineMode = on;
+  await configSet('libraryMode', on ? 'online' : 'local');
+  await refreshApp();
+}
+
+async function loadOnlinePrefs(){
+  try{ return (await configGet(ONLINE_PREFS_KEY)) || {}; }catch(e){ return {}; }
+}
+async function saveOnlinePrefs(p){ await configSet(ONLINE_PREFS_KEY, p); }
+
+async function buildOnlineStory(dirName){
+  const src = await onlineSource();
+  const base = await onlineSiteBase();
+  const urlBase = base + encodeURI(src.path) + '/' + encodeURIComponent(dirName) + '/';
+  let meta = null;
+  try{
+    const r = await fetch(urlBase + 'meta.json');
+    if (r.ok) meta = await r.json();
+  }catch(e){ /* no meta.json — fall back below */ }
+  let id = dirName, title = titleFromFilename(dirName), audioExt = 'mp3',
+      mime = 'audio/mpeg', hasCover = false, createdAt = 0,
+      serverFav = false, serverSort = undefined, coverName = 'cover.jpg', serverPinned = 0;
+  if (meta){
+    if (meta.title) title = meta.title;
+    if (meta.id) id = meta.id;
+    if (meta.audioExt) audioExt = meta.audioExt;
+    if (meta.mime) mime = meta.mime;
+    hasCover = !!meta.hasCover;
+    if (meta.createdAt) createdAt = meta.createdAt;
+    serverFav = meta.favorite === true;
+    if (typeof meta.sortOrder === 'number') serverSort = meta.sortOrder;
+    if (meta.pinnedAt) serverPinned = meta.pinnedAt;
+    if (meta.coverName) coverName = meta.coverName;
+  } else {
+    // No meta.json — peek into the folder so the recording can still be found.
+    try{
+      const api = 'https://api.github.com/repos/' + src.owner + '/' + src.repo
+                + '/contents/' + encodeURI(src.path) + '/' + encodeURIComponent(dirName);
+      const res = await fetch(api, {headers:{Accept:'application/vnd.github+json'}});
+      if (res.ok){
+        const files = await res.json();
+        const audioFile = (files || []).find(f => /^audio\./i.test(f.name));
+        if (audioFile) audioExt = extOf(audioFile.name, 'mp3');
+      }
+    }catch(e){}
+  }
+  const story = {
+    id, title, mime, audioExt, hasCover, createdAt,
+    online: true, urlBase, coverName,
+    favorite: false, pinnedAt: serverPinned,
+    sortOrder: serverSort
+  };
+  const prefs = await loadOnlinePrefs();
+  const p = prefs[id];
+  if (p){
+    story.favorite = p.favorite === true;
+    if (p.pinnedAt) story.pinnedAt = p.pinnedAt;
+    if (typeof p.sortOrder === 'number') story.sortOrder = p.sortOrder;
+  } else if (serverFav){
+    story.favorite = true;
+  }
+  return story;
+}
+
+async function loadLibraryOnline(){
+  const src = await onlineSource();
+  const api = 'https://api.github.com/repos/' + src.owner + '/' + src.repo
+            + '/contents/' + encodeURI(src.path);
+  const res = await fetch(api, {headers:{Accept:'application/vnd.github+json'}});
+  if (!res.ok) throw new Error('online library listing failed');
+  const items = await res.json();
+  const list = [];
+  for (const it of items){
+    if (it.type !== 'dir') continue;                 // skip README.txt & other loose files
+    try{
+      const s = await buildOnlineStory(it.name);
+      if (s) list.push(s);
+    }catch(e){ /* skip one bad folder, keep the rest */ }
+  }
+  list.sort((a,b)=>(a.createdAt||0)-(b.createdAt||0));
+  document.body.setAttribute('data-library-online', String(list.length));
+  return list;
+}
+
+function isOnlineStory(s){ return !!(s && s.online); }
+
 /* ---------------- dom helpers ---------------- */
 function el(tag, attrs={}, children=[]) {
   const e = document.createElement(tag);
@@ -521,6 +645,9 @@ async function loadLibraryFromFolder(){
 }
 
 async function coverUrlFor(story){
+  if (isOnlineStory(story)){
+    return story.hasCover ? story.urlBase + encodeURIComponent(story.coverName) : null;
+  }
   if (!story.hasCover) return null;
   if (coverUrlCache.has(story.id)) return coverUrlCache.get(story.id);
   try{
@@ -534,6 +661,31 @@ async function coverUrlFor(story){
 
 /* ---------------- top-level render router ---------------- */
 async function refreshApp(){
+  const savedMode = await configGet('libraryMode');
+  if (savedMode !== 'online' && savedMode !== 'local'){
+    // No choice made yet: on the hosted website, online stories are the natural
+    // default; the local double-clicked copy keeps the folder flow.
+    onlineMode = location.protocol.startsWith('http') ? 'online' : 'local';
+  } else {
+    onlineMode = savedMode;
+  }
+
+  if (onlineMode === 'online'){
+    parentLinkBtn.style.display = 'block';
+    folderBadge.style.display = 'block';
+    folderBadge.textContent = '🌐 Online stories';
+    libraryLoaded = false;
+    renderShelf();
+    try{
+      stories = await loadLibraryOnline();
+      libraryLoaded = true;
+      renderShelf();
+    }catch(e){
+      renderOnlineError();
+    }
+    return;
+  }
+
   if (!SUPPORTS_FS_ACCESS){
     renderUnsupported();
     return;
@@ -559,6 +711,19 @@ async function refreshApp(){
   renderShelf();
 }
 
+function renderOnlineError(){
+  playerView.style.display = 'none';
+  shelfView.style.display = 'block';
+  subtitle.textContent = '';
+  shelfView.innerHTML = '';
+  shelfView.appendChild(el('div',{class:'connect-screen'},[
+    el('span',{class:'big-emoji'},'🌐'),
+    el('div',{style:'font-family:Fredoka,sans-serif;font-size:1.2rem;margin-bottom:10px;'}, 'Couldn\'t reach the online bookshelf'),
+    el('p',{}, 'Check your internet connection, then try again.'),
+    el('button',{class:'big-btn', onclick: refreshApp}, 'Try again')
+  ]));
+}
+
 function renderUnsupported(){
   playerView.style.display = 'none';
   shelfView.style.display = 'block';
@@ -567,7 +732,8 @@ function renderUnsupported(){
   shelfView.appendChild(el('div',{class:'connect-screen'},[
     el('span',{class:'big-emoji'},'😕'),
     el('div',{style:'font-family:Fredoka,sans-serif;font-size:1.2rem;margin-bottom:10px;'}, "This browser can't save files locally"),
-    el('p',{}, 'Saving story files directly to a folder needs Chrome or Microsoft Edge on a computer. Please open this page in one of those browsers.')
+    el('p',{}, 'Saving story files directly to a folder needs Chrome or Microsoft Edge on a computer. But your online stories work everywhere:'),
+    el('button',{class:'big-btn', onclick: ()=>setOnlineMode(true)}, 'Use Online Story Time 🌐')
   ]));
 }
 
@@ -584,7 +750,8 @@ function renderConnectScreen(){
       ? "For safety, browsers ask you to reconnect the folder each time you restart them. One tap and you're back in."
       : 'Pick (or create) a folder on this computer. Story Time will save every recording and cover picture there as real files.'),
     el('button',{class:'big-btn', onclick: handleConnectClick}, hasPrevious ? 'Reconnect folder' : 'Choose folder'),
-    el('div',{class:'connect-note'}, 'Parents: do this step once. After that your daughter can just open the page and start listening.')
+    el('div',{class:'connect-note'}, 'Parents: do this step once. After that your daughter can just open the page and start listening.'),
+    el('button',{class:'big-btn', style:'margin-top:14px;', onclick: ()=>setOnlineMode(true)}, 'Use Online Story Time 🌐')
   ]));
 }
 
@@ -660,11 +827,13 @@ function renderShelf(){
   if (miniBar) shelfView.appendChild(miniBar);
 
   if (stories.length === 0){
-    shelfView.appendChild(el('div',{class:'empty-shelf'},[
-      el('span',{class:'big-emoji'},'🌙'),
-      el('div',{},'No stories yet. Ask a grown-up to add one in Parent tools!'),
-      el('button',{class:'big-btn', id:'addExampleBtn', style:'margin-top:18px;', onclick: handleAddExample}, '✨ Add an example story')
-    ]));
+    shelfView.appendChild(el('div',{class:'empty-shelf'}, onlineMode === 'online'
+      ? [ el('span',{class:'big-emoji'},'🌐'),
+          el('div',{},'No online stories yet. Add a story folder to the books folder on the computer, wait about a minute, then pick "Re-check".'),
+          el('button',{class:'big-btn', style:'margin-top:18px;', onclick: refreshApp}, 'Re-check') ]
+      : [ el('span',{class:'big-emoji'},'🌙'),
+          el('div',{},'No stories yet. Ask a grown-up to add one in Parent tools!'),
+          el('button',{class:'big-btn', id:'addExampleBtn', style:'margin-top:18px;', onclick: handleAddExample}, '✨ Add an example story') ]));
     return;
   }
 
@@ -779,6 +948,14 @@ async function togglePlay(){
 async function loadAndPlayAudio(story){
   renderPlayer('loading');
   try{
+    if (isOnlineStory(story)){
+      if (currentAudioUrl){ URL.revokeObjectURL(currentAudioUrl); currentAudioUrl = null; }
+      audioEl.src = story.urlBase + 'audio.' + story.audioExt;
+      audioEl.setAttribute('data-story', story.id);
+      renderPlayer('idle');
+      await audioEl.play();
+      return;
+    }
     const fh = await story.dirHandle.getFileHandle('audio.' + story.audioExt);
     const file = await fh.getFile();
     if (currentAudioUrl) URL.revokeObjectURL(currentAudioUrl);
@@ -871,13 +1048,58 @@ parentLinkBtn.addEventListener('click', guardParentOpen);
 let pendingCoverBlob = null;
 let pendingAudioFile = null;
 
-function openParentModal(){
+async function openParentModal(){
   modalRoot.innerHTML = '';
   const overlay = el('div',{class:'modal-overlay', onclick:(e)=>{ if(e.target===overlay) closeModal(); }});
   const modal = el('div',{class:'modal'});
+  const isOnline = onlineMode === 'online';
+  const src = await onlineSource();
 
   modal.appendChild(el('button',{class:'btn-close', onclick: closeModal}, '×'));
-  modal.appendChild(el('h2',{}, 'Add a story'));
+  modal.appendChild(el('h2',{}, isOnline ? 'Online stories' : 'Add a story'));
+
+  /* library source */
+  modal.appendChild(el('hr',{class:'divider'}));
+  modal.appendChild(el('h2',{style:'font-size:1.05rem;'}, 'Where are the stories?'));
+  const libBadge = el('div',{style:'font-weight:600;margin-bottom:6px;'}, isOnline
+    ? '🌐 Online stories (this website)'
+    : '📁 This computer\'s folder');
+  const libNote = el('div',{style:'font-size:.8rem;color:#6b6684;margin-bottom:10px;'}, isOnline
+    ? 'Online books are added on the computer: drop a story folder into the "books" folder inside the project, wait about a minute, then choose "Re-check" below. Favourites and order are remembered on this device.'
+    : 'Stories below are saved as real files in a folder on this computer.');
+  const libRow = el('div',{class:'modal-actions', style:'justify-content:flex-start;'}, []);
+  if (isOnline){
+    libRow.appendChild(el('button',{class:'btn btn-primary', onclick: refreshApp}, 'Re-check for new stories'));
+    if (SUPPORTS_FS_ACCESS){
+      libRow.appendChild(el('button',{class:'btn btn-secondary', onclick: ()=>setOnlineMode(false)}, 'Use my computer folder'));
+    }
+  } else {
+    libRow.appendChild(el('button',{class:'btn btn-secondary', onclick: ()=>setOnlineMode(true)}, 'Use Online Story Time 🌐'));
+  }
+  modal.appendChild(el('div',{}, [libBadge, libNote, libRow]));
+
+  if (isOnline){
+    const srcInput = el('input',{type:'text', id:'onlineSrcInput', value: 'https://github.com/' + src.owner + '/' + src.repo});
+    const saveSrcBtn = el('button',{class:'btn btn-secondary', style:'padding:6px 12px;font-size:.78rem;', onclick: async ()=>{
+      const parsed = githubUrlToSource(srcInput.value);
+      if (parsed){
+        await configSet('onlineSource', { owner: parsed.owner, repo: parsed.repo, path: 'books' });
+        closeModal();
+        await refreshApp();
+      } else {
+        srcInput.style.outline = '2px solid #e8735b';
+        srcInput.style.outlineOffset = '2px';
+      }
+    }}, 'Save');
+    modal.appendChild(el('div',{style:'margin-top:12px;border-top:1px dashed #d8d2ea;padding-top:10px;'},[
+      el('label',{}, 'Advanced (rarely changed) — the website that hosts the books'),
+      srcInput,
+      el('div',{style:'font-size:.75rem;color:#8a84a0;'}, 'Leave as is unless you are moving the site somewhere new.'),
+      saveSrcBtn
+    ]));
+  }
+
+  if (!isOnline){
   modal.appendChild(el('div',{class:'hint'}, 'Upload a recording and (optionally) a cover picture. They\'ll be saved as real files on this computer.'));
 
   const titleInput = el('input',{type:'text', id:'titleInput', placeholder:'e.g. The Gruffalo'});
@@ -941,6 +1163,7 @@ function openParentModal(){
   modal.appendChild(batchProgressWrap);
   modal.appendChild(batchProgressLabel);
   modal.appendChild(batchMsgHolder);
+  }
 
   modal.appendChild(el('hr',{class:'divider'}));
   modal.appendChild(el('h2',{style:'font-size:1.05rem;'}, `Your stories (${stories.length})`));
@@ -948,11 +1171,13 @@ function openParentModal(){
   renderStoryList(list);
   modal.appendChild(list);
 
-  modal.appendChild(el('hr',{class:'divider'}));
-  modal.appendChild(el('div',{class:'folder-row'},[
-    el('span',{}, '📁 ' + (rootHandle ? rootHandle.name : 'no folder')),
-    el('button',{onclick: async ()=>{ await chooseNewFolder(); closeModal(); await refreshApp(); }}, 'Change folder')
-  ]));
+  if (!isOnline){
+    modal.appendChild(el('hr',{class:'divider'}));
+    modal.appendChild(el('div',{class:'folder-row'},[
+      el('span',{}, '📁 ' + (rootHandle ? rootHandle.name : 'no folder')),
+      el('button',{onclick: async ()=>{ await chooseNewFolder(); closeModal(); await refreshApp(); }}, 'Change folder')
+    ]));
+  }
 
   overlay.appendChild(modal);
   modalRoot.appendChild(overlay);
@@ -986,8 +1211,8 @@ function renderStoryList(container){
       moveUp,
       moveDown,
       el('button',{class:'fav-btn' + (story.favorite===true?' is-fav':''), title: story.favorite===true?'Remove from favourites':'Add to favourites', onclick: ()=>handleToggleFavorite(story.id)}, story.favorite===true?'★':'☆'),
-      el('button',{class:'edit-btn', onclick: ()=>openEditModal(story)}, '✏️'),
-      el('button',{onclick: ()=>handleDeleteStory(story.id)}, '🗑')
+      isOnlineStory(story) ? null : el('button',{class:'edit-btn', onclick: ()=>openEditModal(story)}, '✏️'),
+      isOnlineStory(story) ? null : el('button',{onclick: ()=>handleDeleteStory(story.id)}, '🗑')
     ]);
     container.appendChild(row);
   });
@@ -1360,6 +1585,17 @@ async function handleSaveEdit(){
 async function handleToggleFavorite(id){
   const story = stories.find(s=>s.id===id);
   if (!story) return;
+  if (isOnlineStory(story)){
+    const prefs = await loadOnlinePrefs();
+    const cur = prefs[id] || {};
+    const newFav = !(story.favorite===true);
+    prefs[id] = Object.assign({}, cur, { favorite: newFav, pinnedAt: newFav ? Date.now() : 0 });
+    await saveOnlinePrefs(prefs);
+    stories = await loadLibraryOnline();
+    renderStoryList(document.getElementById('storyList'));
+    renderShelf();
+    return;
+  }
   const newFav = !(story.favorite===true);
   const meta = {
     id: story.id, title: story.title, mime: story.mime,
@@ -1379,6 +1615,30 @@ async function handleToggleFavorite(id){
 }
 
 async function handleMoveStory(id, dir){
+  if (isOnlineStory(stories.find(s=>s.id===id))){
+    const prefs = await loadOnlinePrefs();
+    const list = shelfOrder();
+    const idx = list.findIndex(s=>s.id===id);
+    if (idx < 0) return;
+    const isFav = list[idx].favorite===true;
+    const members = list.filter(s=>(s.favorite===true)===isFav);
+    const mIdx = members.findIndex(s=>s.id===id);
+    const tIdx = mIdx + dir;
+    if (tIdx < 0 || tIdx >= members.length) return;
+    const arr = members.slice();
+    const [moved] = arr.splice(mIdx,1);
+    arr.splice(tIdx,0,moved);
+    arr.forEach((st,i)=>{
+      prefs[st.id] = Object.assign({}, prefs[st.id] || {}, {
+        favorite: st.favorite===true, pinnedAt: st.pinnedAt || 0, sortOrder: i
+      });
+    });
+    await saveOnlinePrefs(prefs);
+    stories = await loadLibraryOnline();
+    renderStoryList(document.getElementById('storyList'));
+    renderShelf();
+    return;
+  }
   const list = shelfOrder();
   const idx = list.findIndex(s=>s.id===id);
   if (idx < 0) return;

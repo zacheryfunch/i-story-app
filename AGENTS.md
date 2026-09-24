@@ -160,12 +160,29 @@ plays. Kid-facing UI playful; parent-facing modals plainer/denser.
 
 ## Git & GitHub maintenance (added 2026-09-24)
 
-This folder is a git repository, backed up to a **private GitHub repo**:
+This folder is a git repository, backed up to a **public GitHub repo** that is
+also **hosted as a website** (GitHub Pages, added 2026-09-25):
 
-- **Remote:** https://github.com/zacheryfunch/i-story-app
+- **Remote:** https://github.com/zacheryfunch/i-story-app (PUBLIC — see below)
 - **Branch:** `main` — local folder and GitHub are kept in sync.
 - **Identity:** the repo is configured to commit as `zacheryfunch`
   (`git config user.name` / `user.email` are set locally).
+
+### GitHub Pages / website hosting
+
+- **Live site:** https://zacheryfunch.github.io/i-story-app/
+- The whole folder is public so the site can be hosted for free. It contains
+  no secrets — never add any (the no-secrets rule above applies extra here).
+- The site is just `index.html` at the repo root; it updates ~1 minute after
+  any push to `main` (no manual deploy step needed).
+- **Relative-path rule:** GitHub Pages serves from the sub-path
+  `.../i-story-app/`, so any new script/link/icon references must stay
+  **relative** — never absolute paths starting with `/` (would 404).
+- **iPhone caveat:** Story Time needs the browser "folder picker" (File System
+  Access API) to open the story folder — desktop Chrome/Edge and Android
+  support it; **iPhone Safari does not**, so the hosted site can't open
+  stories on an iPhone. Fine on laptop/desktop/Android.
+- The auto-commit watcher keeps this site updated automatically after edits.
 
 ### Rules for any agent working here
 

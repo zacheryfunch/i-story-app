@@ -178,11 +178,26 @@ also **hosted as a website** (GitHub Pages, added 2026-09-25):
 - **Relative-path rule:** GitHub Pages serves from the sub-path
   `.../i-story-app/`, so any new script/link/icon references must stay
   **relative** — never absolute paths starting with `/` (would 404).
-- **iPhone caveat:** Story Time needs the browser "folder picker" (File System
-  Access API) to open the story folder — desktop Chrome/Edge and Android
-  support it; **iPhone Safari does not**, so the hosted site can't open
-  stories on an iPhone. Fine on laptop/desktop/Android.
+- **Device reach:** the local-folder flow needs desktop Chrome/Edge (File
+  System Access — no iPhone support); the **online bookshelf works on every
+  device including iPhone**.
 - The auto-commit watcher keeps this site updated automatically after edits.
+
+### Online story library (`books` folder)
+
+- The `books/` subfolder here is published with the site and feeds the app's
+  **online bookshelf** — this is also how the app runs on devices without the
+  folder picker (notably **iPhone Safari**, which can't use the local-folder
+  flow). A story = a subfolder inside `books/` containing `meta.json`,
+  `cover.jpg`, and `audio.<mp3|wav|...>` (the app generates exactly this
+  shape for local stories, so copy a story folder straight in).
+- Flow: copy a story folder into `books/` → watcher auto-pushes → site
+  updated in ~1 min → the app's Parent tools "Re-check for new stories"
+  picks it up.
+- Online favourites/order live per-device (the site can't rewrite the repo) —
+  see `index.html` "online library" section / PROJECT_NOTES for the design.
+- Loose files in `books/` (e.g. `README.txt`) are ignored by the loader.
+- Removing an online story: delete its subfolder in `books/` and push.
 
 ### Rules for any agent working here
 

@@ -438,3 +438,61 @@ tripped into locking the parent out.
 - A note in-app (not just the README) reminding the parent that data lives
   on one browser+computer unless the chosen folder is itself inside a
   Dropbox/Google Drive synced folder.
+
+---
+
+## Online story library ("books folder" on the website) — added 2026-09-25
+
+Chosen by Zach over two alternatives (connect via Google Drive API; or keep
+it local-only). Rationale: zero new credentials/accounts, and the hosted
+website can finally run on devices that lack the File System Access API
+(notably **iPhone Safari**).
+
+### How it works
+
+- A `books/` folder was added to the project repo (alongside `index.html`).
+  Any **story folder** dropped into it (a subfolder containing `meta.json`,
+  `cover.jpg`, and `audio.<mp3|wav|...>`) is pushed to GitHub by the
+  auto-commit watcher and served by GitHub Pages.
+- In the app, a second library source was added:
+  - The GitHub API
+    (`https://api.github.com/repos/<owner>/<repo>/contents/books`) lists the
+    folder once per shelf load (unauthenticated: fine for home use).
+  - Story `meta.json`, `cover.jpg`, `audio.*` are fetched/streamed from the
+    **site itself** (same-origin on GitHub Pages — no CORS effort).
+  - If `meta.json` is missing, the folder name becomes the title and the
+    subfolder is listed (one extra API call) to find the `audio.*` file.
+- **Mode selection** (`libraryMode` in IndexedDB config):
+  - Fresh hosted (`http(s)`) visit → **online** by default.
+  - Fresh local double-click (`file://`) visit → **local folder** by default.
+  - Parent tools shows "Where are the stories?" with a switch ("Use Online
+    Story Time 🌐" ↔ "Use my computer folder"), plus "Re-check for new
+    stories".
+  - A "Use Online Story Time" button also appears on the connect screen and
+    the browser-unsupported screen, so an iPhone can go online with one tap.
+- **Favourites & manual order for online books** are stored **per device** in
+  a single IndexedDB config key (`onlinePrefs`, keyed by story id) — the
+  website can't rewrite the repo. Local overrides the server's own
+  `meta.json` favourite flag.
+- Online stories get ★ / ▲ / ▼ in the story list, but **no ✏️ or 🗑** (editing
+  happens on the computer, in the repo folder).
+
+### Code locations
+
+- New section: `/* online library ... */` after `configGet` (source helpers,
+  `buildOnlineStory`, `loadLibraryOnline`, prefs) — see the block comment for
+  the canonical design explanation.
+- Branch points (checked by `isOnlineStory(story)`): `coverUrlFor`,
+  `loadAndPlayAudio`, `handleToggleFavorite`, `handleMoveStory`,
+  `renderStoryList`, plus mode routing in `refreshApp` / `init`.
+
+### Constraints & gotchas (know before touching)
+
+- `buildOnlineStory` sets the probe attribute
+  `document.body.dataset.library-online = '<count>'` (used by headless
+  verification; harmless in production).
+- Default repo source is `zacheryfunch/i-story-app`, path `books`. Overridable
+  in Parent tools ("Advanced (rarely changed)") via `onlineSource` config.
+- New public books appear within ~1 min of the watcher's push (Pages rebuild).
+- Online stories are public like the rest of the site.
+- `.gitignore` still ignores `auto-commit.log` only — `books/` is tracked.

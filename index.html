@@ -1,0 +1,1443 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no" />
+<title>Story Time</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink-navy:#1B1E3D;
+    --ink-navy-deep:#12142B;
+    --lamp-amber:#F4A94B;
+    --lamp-amber-soft:#FBD9A5;
+    --page-cream:#FBF3E3;
+    --shelf-brown:#7A5240;
+    --shelf-brown-dark:#5E3E31;
+    --soft-coral:#E8735B;
+    --ink-text:#2B2740;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;height:100%;}
+  body{
+    font-family:'Nunito',sans-serif;
+    background:
+      radial-gradient(ellipse at 20% 0%, #262a52 0%, transparent 55%),
+      radial-gradient(ellipse at 85% 10%, #232752 0%, transparent 50%),
+      var(--ink-navy);
+    color:var(--page-cream);
+    min-height:100vh;
+    overflow-x:hidden;
+    position:relative;
+  }
+  .stars{position:fixed;inset:0;pointer-events:none;z-index:0;}
+  .star{position:absolute;background:#fff;border-radius:50%;opacity:.55;animation:twinkle 4s ease-in-out infinite;}
+  @keyframes twinkle{0%,100%{opacity:.2;}50%{opacity:.75;}}
+
+  .app{position:relative;z-index:1;max-width:920px;margin:0 auto;padding:28px 20px 60px;}
+
+  .lamp-wrap{display:flex;flex-direction:column;align-items:center;margin-bottom:8px;}
+  .lamp-glow{
+    width:220px;height:110px;
+    background:radial-gradient(ellipse at 50% 0%, rgba(244,169,75,0.55) 0%, rgba(244,169,75,0.12) 45%, transparent 70%);
+    filter:blur(2px);
+    margin-bottom:-40px;
+    transition:opacity .6s ease, transform .6s ease;
+  }
+  .lamp-glow.playing{animation:pulseGlow 2.6s ease-in-out infinite;}
+  @keyframes pulseGlow{0%,100%{opacity:.85;transform:scale(1);}50%{opacity:1;transform:scale(1.08);}}
+
+  h1.title{
+    font-family:'Fredoka',sans-serif;
+    font-weight:600;
+    font-size:2.1rem;
+    letter-spacing:.5px;
+    margin:0 0 2px 0;
+    color:var(--page-cream);
+    text-align:center;
+  }
+  .subtitle{text-align:center;color:#b9b6d6;font-size:.95rem;margin-bottom:26px;}
+
+  .shelf-area{position:relative;}
+  .shelf-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fill, minmax(140px,1fr));
+    gap:22px 18px;
+    padding-bottom:10px;
+  }
+  .book-card{
+    background:transparent;
+    border:none;
+    cursor:pointer;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    padding:0;
+    color:inherit;
+    font-family:inherit;
+    transition:transform .15s ease;
+  }
+  .book-card:active{transform:scale(.96);}
+  .cover{
+    width:100%;
+    aspect-ratio:3/4;
+    border-radius:10px;
+    background-size:cover;
+    background-position:center;
+    box-shadow:0 8px 18px rgba(0,0,0,.35), 0 2px 0 rgba(255,255,255,.05) inset;
+    border:3px solid rgba(255,255,255,0.08);
+    display:flex;align-items:center;justify-content:center;
+    font-size:2.4rem;
+  }
+  .book-title{
+    margin-top:9px;
+    font-size:.95rem;
+    font-weight:700;
+    text-align:center;
+    line-height:1.25;
+    color:var(--page-cream);
+  }
+
+  .empty-shelf{
+    text-align:center;
+    padding:60px 20px;
+    color:#c9c6e4;
+  }
+  .empty-shelf .big-emoji{font-size:3rem;display:block;margin-bottom:10px;}
+
+  .connect-screen{
+    text-align:center;
+    padding:70px 20px;
+  }
+  .connect-screen .big-emoji{font-size:3.4rem;display:block;margin-bottom:14px;}
+  .connect-screen p{color:#c9c6e4;max-width:380px;margin:0 auto 22px;line-height:1.5;font-size:.95rem;}
+  .big-btn{
+    font-family:'Nunito',sans-serif;font-weight:800;font-size:1rem;
+    background:var(--lamp-amber);color:var(--ink-navy-deep);
+    border:none;border-radius:12px;padding:14px 26px;cursor:pointer;
+    box-shadow:0 10px 20px rgba(244,169,75,.3);
+  }
+  .connect-note{margin-top:16px;font-size:.78rem;color:#8f8ab0;max-width:340px;margin-left:auto;margin-right:auto;}
+
+  .player-view{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    padding-top:10px;
+  }
+  .back-btn{
+    align-self:flex-start;
+    background:rgba(255,255,255,0.08);
+    border:none;
+    color:var(--page-cream);
+    padding:10px 16px;
+    border-radius:999px;
+    font-family:'Nunito',sans-serif;
+    font-weight:700;
+    font-size:.9rem;
+    cursor:pointer;
+    margin-bottom:18px;
+  }
+  .player-cover{
+    width:min(280px, 60vw);
+    aspect-ratio:3/4;
+    border-radius:14px;
+    background-size:cover;
+    background-position:center;
+    box-shadow:0 16px 30px rgba(0,0,0,.45);
+    border:4px solid rgba(255,255,255,0.1);
+    display:flex;align-items:center;justify-content:center;
+    font-size:4rem;
+    margin-bottom:20px;
+  }
+  .player-title{
+    font-family:'Fredoka',sans-serif;
+    font-size:1.5rem;
+    text-align:center;
+    margin:0 0 22px 0;
+    max-width:420px;
+  }
+  .play-btn{
+    width:96px;height:96px;
+    border-radius:50%;
+    border:none;
+    background:radial-gradient(circle at 35% 30%, var(--lamp-amber-soft), var(--lamp-amber) 70%);
+    box-shadow:0 10px 24px rgba(244,169,75,.4);
+    cursor:pointer;
+    display:flex;align-items:center;justify-content:center;
+    transition:transform .12s ease;
+    margin-bottom:20px;
+  }
+  .play-btn:active{transform:scale(.94);}
+  .play-btn svg{width:38px;height:38px;fill:var(--ink-navy-deep);}
+
+  .progress-wrap{width:min(340px,80vw);}
+  .progress-track{
+    height:8px;border-radius:99px;background:rgba(255,255,255,.12);overflow:hidden;
+    cursor:pointer;touch-action:none;position:relative;
+  }
+  .progress-fill{height:100%;background:linear-gradient(90deg,var(--lamp-amber),var(--lamp-amber-soft));width:0%;transition:width .1s linear;pointer-events:none;}
+  .time-row{display:flex;justify-content:space-between;font-size:.78rem;color:#c9c6e4;margin-top:6px;}
+  .status-line{margin-top:14px;font-size:.85rem;color:#c9c6e4;text-align:center;min-height:1.2em;}
+
+  /* ---------- Mini "now playing" bar shown on the shelf ---------- */
+  .mini-bar{
+    display:flex;align-items:center;gap:12px;
+    background:rgba(255,255,255,0.06);
+    border:1px solid rgba(255,255,255,0.12);
+    border-radius:14px;
+    padding:10px 14px;
+    margin-bottom:22px;
+  }
+  .mini-cover{
+    width:44px;height:58px;border-radius:6px;background-size:cover;background-position:center;
+    background-color:rgba(255,255,255,0.08);
+    display:flex;align-items:center;justify-content:center;font-size:1.3rem;flex-shrink:0;cursor:pointer;
+  }
+  .mini-info{flex:1;min-width:0;}
+  .mini-eyebrow{font-size:.68rem;letter-spacing:.04em;text-transform:uppercase;color:var(--lamp-amber-soft);margin-bottom:2px;font-weight:700;}
+  .mini-title{font-weight:700;font-size:.88rem;margin-bottom:7px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;}
+  .mini-track{height:5px;border-radius:99px;background:rgba(255,255,255,.15);cursor:pointer;touch-action:none;position:relative;}
+  .mini-fill{height:100%;width:0%;border-radius:99px;background:linear-gradient(90deg,var(--lamp-amber),var(--lamp-amber-soft));pointer-events:none;}
+  .mini-play-btn{
+    width:38px;height:38px;border-radius:50%;border:none;flex-shrink:0;
+    background:var(--lamp-amber);display:flex;align-items:center;justify-content:center;cursor:pointer;
+  }
+  .mini-play-btn svg{width:16px;height:16px;fill:var(--ink-navy-deep);}
+
+  .parent-link{
+    position:fixed;
+    bottom:14px;right:16px;
+    background:rgba(0,0,0,0.25);
+    color:#a9a6c8;
+    border:1px solid rgba(255,255,255,.12);
+    padding:7px 12px;
+    border-radius:999px;
+    font-size:.72rem;
+    cursor:pointer;
+    z-index:5;
+    font-family:'Nunito',sans-serif;
+  }
+  .folder-badge{
+    position:fixed;
+    bottom:14px;left:16px;
+    background:rgba(0,0,0,0.25);
+    color:#8f8ab0;
+    border:1px solid rgba(255,255,255,.1);
+    padding:7px 12px;
+    border-radius:999px;
+    font-size:.7rem;
+    z-index:5;
+    font-family:'Nunito',sans-serif;
+    max-width:50vw;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+  }
+  .modal-overlay{
+    position:fixed;inset:0;background:rgba(10,10,20,.72);
+    display:flex;align-items:center;justify-content:center;
+    z-index:20;padding:16px;
+  }
+  .modal{
+    background:var(--page-cream);
+    color:var(--ink-text);
+    width:100%;max-width:480px;
+    max-height:88vh;
+    overflow-y:auto;
+    border-radius:16px;
+    padding:22px 22px 26px;
+  }
+  .modal h2{font-family:'Fredoka',sans-serif;margin:0 0 4px;font-size:1.3rem;}
+  .modal .hint{font-size:.82rem;color:#6b6684;margin-bottom:16px;}
+  .modal label{display:block;font-weight:700;font-size:.85rem;margin:14px 0 6px;}
+  .modal input[type=text]{
+    width:100%;padding:10px 12px;border-radius:8px;border:1.5px solid #ddd6c4;font-family:'Nunito',sans-serif;font-size:.95rem;
+  }
+  .file-input-btn{
+    display:block;width:100%;padding:10px 12px;border-radius:8px;border:1.5px dashed #c9c0a3;
+    background:#fff;font-size:.85rem;color:#6b6684;cursor:pointer;text-align:center;
+  }
+  .file-input-btn.has-file{border-style:solid;color:var(--ink-text);border-color:#b7ab84;}
+  input[type=file]{display:none;}
+  .modal-actions{display:flex;gap:10px;margin-top:20px;}
+  .btn{
+    font-family:'Nunito',sans-serif;font-weight:800;font-size:.9rem;
+    border:none;border-radius:10px;padding:11px 16px;cursor:pointer;
+  }
+  .btn-primary{background:var(--lamp-amber);color:var(--ink-navy-deep);flex:1;}
+  .btn-primary:disabled{opacity:.5;cursor:wait;}
+  .btn-secondary{background:#eee5cf;color:var(--ink-text);}
+  .btn-close{background:none;border:none;color:#8a84a0;font-size:1.3rem;cursor:pointer;float:right;line-height:1;}
+  .divider{border:none;border-top:1px solid #e6ddc4;margin:22px 0 14px;}
+  .story-row{
+    display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #efe8d5;
+  }
+  .story-row img,.story-row .fallback{
+    width:38px;height:50px;border-radius:5px;object-fit:cover;background:#e5dcc2;
+    display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0;
+  }
+  .story-row .name{flex:1;font-size:.88rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .story-row button{
+    background:none;border:none;color:var(--soft-coral);font-size:1.1rem;cursor:pointer;padding:6px;
+  }
+  .story-row button.edit-btn{color:#6b6684;}
+  .story-row button.fav-btn{font-size:1.2rem;color:#c9c0a3;}
+  .story-row button.fav-btn.is-fav{color:var(--lamp-amber);}
+  .story-row button.move-btn{color:#2B2740;padding:4px 5px;font-size:.8rem;}
+  .story-row button.move-btn:disabled{color:#a9a6c8;opacity:1;cursor:default;}
+  .inline-msg{font-size:.82rem;margin-top:10px;padding:8px 10px;border-radius:8px;}
+  .inline-msg.error{background:#fbdedb;color:#8a2e21;}
+  .inline-msg.ok{background:#dcefda;color:#2c6b2f;}
+  .folder-row{font-size:.8rem;color:#6b6684;margin-top:8px;display:flex;align-items:center;justify-content:space-between;gap:8px;}
+  .folder-row button{background:#eee5cf;border:none;border-radius:8px;padding:6px 10px;font-size:.75rem;cursor:pointer;color:var(--ink-text);font-weight:700;}
+  .progress-mini{height:6px;border-radius:4px;background:#e6ddc4;overflow:hidden;margin-top:10px;}
+  .progress-mini-fill{height:100%;background:var(--lamp-amber);width:0%;transition:width .15s ease;}
+</style>
+</head>
+<body>
+<div class="stars" id="stars"></div>
+
+<div class="app">
+  <div class="lamp-wrap">
+    <div class="lamp-glow" id="lampGlow"></div>
+  </div>
+  <h1 class="title">📚 Story Time</h1>
+  <div class="subtitle" id="subtitle"></div>
+
+  <div id="shelfView" class="shelf-area"></div>
+  <div id="playerView" class="player-view" style="display:none;"></div>
+</div>
+
+<button class="parent-link" id="parentLinkBtn" style="display:none;">Parent tools</button>
+<div class="folder-badge" id="folderBadge" style="display:none;"></div>
+<div id="modalRoot"></div>
+<audio id="audioEl" style="display:none;"></audio>
+
+<script>
+/* =========================================================
+   Story Time — standalone local app
+   Recordings and cover pictures are saved as real files in a
+   folder you choose on this device (via the File System Access
+   API). Nothing is uploaded anywhere. Requires Chrome or Edge.
+   ========================================================= */
+
+const SUPPORTS_FS_ACCESS = 'showDirectoryPicker' in window;
+const CONFIG_DB = 'storyTimeConfigDB';
+const CONFIG_STORE = 'config';
+
+function openConfigDB(){
+  return new Promise((resolve,reject)=>{
+    const req = indexedDB.open(CONFIG_DB, 1);
+    req.onupgradeneeded = (e)=>{
+      const db = e.target.result;
+      if (!db.objectStoreNames.contains(CONFIG_STORE)) db.createObjectStore(CONFIG_STORE, {keyPath:'key'});
+    };
+    req.onsuccess = ()=>resolve(req.result);
+    req.onerror = ()=>reject(req.error);
+  });
+}
+async function configSet(key, value){
+  const db = await openConfigDB();
+  return new Promise((resolve,reject)=>{
+    const tx = db.transaction(CONFIG_STORE,'readwrite');
+    tx.objectStore(CONFIG_STORE).put({key, value});
+    tx.oncomplete = ()=>resolve(true);
+    tx.onerror = ()=>reject(tx.error);
+  });
+}
+async function configGet(key){
+  const db = await openConfigDB();
+  return new Promise((resolve,reject)=>{
+    const tx = db.transaction(CONFIG_STORE,'readonly');
+    const req = tx.objectStore(CONFIG_STORE).get(key);
+    req.onsuccess = ()=>resolve(req.result ? req.result.value : null);
+    req.onerror = ()=>reject(req.error);
+  });
+}
+
+/* ---------------- dom helpers ---------------- */
+function el(tag, attrs={}, children=[]) {
+  const e = document.createElement(tag);
+  for (const [k,v] of Object.entries(attrs)) {
+    if (k === 'class') e.className = v;
+    else if (k === 'html') e.innerHTML = v;
+    else if (k.startsWith('on')) e.addEventListener(k.slice(2), v);
+    else e.setAttribute(k, v);
+  }
+  (Array.isArray(children)?children:[children]).forEach(c=>{
+    if (c==null) return;
+    e.appendChild(typeof c==='string'?document.createTextNode(c):c);
+  });
+  return e;
+}
+function uid(){ return 's_' + Date.now() + '_' + Math.random().toString(36).slice(2,8); }
+function titleFromFilename(filename){
+  let base = (filename||'').replace(/\.[^/.]+$/, '');
+  base = base.replace(/[_\-]+/g, ' ');
+  base = base.replace(/\s+/g, ' ').trim();
+  base = base.replace(/\b\w/g, c => c.toUpperCase());
+  return base;
+}
+function slugifyTitle(title){
+  let s = (title||'').trim();
+  s = s.replace(/[<>:"/\\|?*\x00-\x1F]/g, '');
+  s = s.replace(/\s+/g, ' ').trim();
+  s = s.replace(/[. ]+$/, '');
+  if (s.length > 60) s = s.slice(0, 60).trim();
+  return s || 'Untitled Story';
+}
+async function getUniqueDirName(baseName){
+  let name = baseName;
+  let counter = 2;
+  while (true){
+    try{
+      await rootHandle.getDirectoryHandle(name, {create:false});
+      name = `${baseName} (${counter})`;
+      counter++;
+    }catch(e){
+      return name;
+    }
+  }
+}
+function formatTime(sec){
+  if (!isFinite(sec)) return '0:00';
+  const m = Math.floor(sec/60), s = Math.floor(sec%60);
+  return m + ':' + String(s).padStart(2,'0');
+}
+function extOf(filename, fallback){
+  const m = /\.([a-zA-Z0-9]+)$/.exec(filename||'');
+  return m ? m[1].toLowerCase() : fallback;
+}
+function resizeCoverImage(file, maxSize=500){
+  return new Promise((resolve,reject)=>{
+    const img = new Image();
+    const reader = new FileReader();
+    reader.onload = e => { img.src = e.target.result; };
+    reader.onerror = ()=>reject(new Error('Could not read image'));
+    img.onload = ()=>{
+      let {width,height} = img;
+      if (width > height) { if (width > maxSize) { height = height*(maxSize/width); width = maxSize; } }
+      else { if (height > maxSize) { width = width*(maxSize/height); height = maxSize; } }
+      const canvas = document.createElement('canvas');
+      canvas.width = width; canvas.height = height;
+      canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+      canvas.toBlob(blob=>resolve(blob), 'image/jpeg', 0.85);
+    };
+    img.onerror = ()=>reject(new Error('Could not load image'));
+    reader.readAsDataURL(file);
+  });
+}
+
+/* ---------------- state ---------------- */
+let rootHandle = null;      // FileSystemDirectoryHandle chosen by the parent
+let stories = [];           // [{id,title,mime,createdAt,hasCover,audioExt,dirHandle}]
+let libraryLoaded = false;
+let currentStory = null;
+let isPlaying = false;
+let currentAudioUrl = null;
+const coverUrlCache = new Map();
+
+const shelfView = document.getElementById('shelfView');
+const playerView = document.getElementById('playerView');
+const modalRoot = document.getElementById('modalRoot');
+const lampGlow = document.getElementById('lampGlow');
+const subtitle = document.getElementById('subtitle');
+const audioEl = document.getElementById('audioEl');
+const parentLinkBtn = document.getElementById('parentLinkBtn');
+const folderBadge = document.getElementById('folderBadge');
+
+/* ---------------- stars ---------------- */
+(function makeStars(){
+  const c = document.getElementById('stars');
+  for (let i=0;i<40;i++){
+    const s = el('div',{class:'star'});
+    const size = Math.random()*2+1;
+    s.style.width = size+'px'; s.style.height = size+'px';
+    s.style.left = Math.random()*100+'%';
+    s.style.top = Math.random()*45+'%';
+    s.style.animationDelay = (Math.random()*4)+'s';
+    c.appendChild(s);
+  }
+})();
+
+/* ---------------- folder connection ---------------- */
+async function verifyPermission(handle, readWrite){
+  const opts = readWrite ? {mode:'readwrite'} : {};
+  if ((await handle.queryPermission(opts)) === 'granted') return true;
+  try{
+    if ((await handle.requestPermission(opts)) === 'granted') return true;
+  }catch(e){ /* requires user gesture; caller should already be in a click handler */ }
+  return false;
+}
+
+async function tryAutoConnect(){
+  try{
+    const saved = await configGet('folderHandle');
+    if (!saved) return false;
+    // Silent check only (no prompt) — a real request needs a user gesture.
+    const granted = await saved.queryPermission({mode:'readwrite'});
+    if (granted === 'granted'){
+      rootHandle = saved;
+      return true;
+    }
+    // We still remember it so the "Reconnect" button can request permission with one tap.
+    rootHandle = saved;
+    return false;
+  }catch(e){
+    return false;
+  }
+}
+
+async function chooseNewFolder(){
+  const handle = await window.showDirectoryPicker({mode:'readwrite'});
+  await configSet('folderHandle', handle);
+  rootHandle = handle;
+  return handle;
+}
+
+async function reconnectFolder(){
+  if (!rootHandle) return chooseNewFolder();
+  const ok = await verifyPermission(rootHandle, true);
+  if (!ok) throw new Error('Permission not granted');
+  return rootHandle;
+}
+
+/* ---------------- library scan ---------------- */
+async function loadLibraryFromFolder(){
+  const list = [];
+  for await (const [name, handle] of rootHandle.entries()){
+    if (handle.kind !== 'directory') continue;
+    try{
+      const metaHandle = await handle.getFileHandle('meta.json');
+      const metaFile = await metaHandle.getFile();
+      const meta = JSON.parse(await metaFile.text());
+      list.push({...meta, dirHandle: handle});
+    }catch(e){ /* skip folders without a valid meta.json */ }
+  }
+  list.sort((a,b)=>a.createdAt-b.createdAt);
+  return list;
+}
+
+async function coverUrlFor(story){
+  if (!story.hasCover) return null;
+  if (coverUrlCache.has(story.id)) return coverUrlCache.get(story.id);
+  try{
+    const fh = await story.dirHandle.getFileHandle('cover.jpg');
+    const file = await fh.getFile();
+    const url = URL.createObjectURL(file);
+    coverUrlCache.set(story.id, url);
+    return url;
+  }catch(e){ return null; }
+}
+
+/* ---------------- top-level render router ---------------- */
+async function refreshApp(){
+  if (!SUPPORTS_FS_ACCESS){
+    renderUnsupported();
+    return;
+  }
+  const connected = rootHandle && await (async()=>{
+    try{ return (await rootHandle.queryPermission({mode:'readwrite'})) === 'granted'; }
+    catch(e){ return false; }
+  })();
+
+  if (!connected){
+    parentLinkBtn.style.display = 'none';
+    folderBadge.style.display = 'none';
+    renderConnectScreen();
+    return;
+  }
+
+  parentLinkBtn.style.display = 'block';
+  folderBadge.style.display = 'block';
+  folderBadge.textContent = '📁 ' + (rootHandle.name || 'Stories folder');
+
+  stories = await loadLibraryFromFolder();
+  libraryLoaded = true;
+  renderShelf();
+}
+
+function renderUnsupported(){
+  playerView.style.display = 'none';
+  shelfView.style.display = 'block';
+  subtitle.textContent = '';
+  shelfView.innerHTML = '';
+  shelfView.appendChild(el('div',{class:'connect-screen'},[
+    el('span',{class:'big-emoji'},'😕'),
+    el('div',{style:'font-family:Fredoka,sans-serif;font-size:1.2rem;margin-bottom:10px;'}, "This browser can't save files locally"),
+    el('p',{}, 'Saving story files directly to a folder needs Chrome or Microsoft Edge on a computer. Please open this page in one of those browsers.')
+  ]));
+}
+
+function renderConnectScreen(){
+  playerView.style.display = 'none';
+  shelfView.style.display = 'block';
+  subtitle.textContent = '';
+  shelfView.innerHTML = '';
+  const hasPrevious = !!rootHandle;
+  shelfView.appendChild(el('div',{class:'connect-screen'},[
+    el('span',{class:'big-emoji'},'📁'),
+    el('div',{style:'font-family:Fredoka,sans-serif;font-size:1.3rem;margin-bottom:10px;'}, hasPrevious ? 'Reconnect your stories folder' : 'Choose a folder for your stories'),
+    el('p',{}, hasPrevious
+      ? "For safety, browsers ask you to reconnect the folder each time you restart them. One tap and you're back in."
+      : 'Pick (or create) a folder on this computer. Story Time will save every recording and cover picture there as real files.'),
+    el('button',{class:'big-btn', onclick: handleConnectClick}, hasPrevious ? 'Reconnect folder' : 'Choose folder'),
+    el('div',{class:'connect-note'}, 'Parents: do this step once. After that your daughter can just open the page and start listening.')
+  ]));
+}
+
+async function handleConnectClick(){
+  try{
+    if (rootHandle){
+      const ok = await verifyPermission(rootHandle, true);
+      if (!ok){
+        // permission denied or dismissed — let them pick a folder instead
+        await chooseNewFolder();
+      }
+    } else {
+      await chooseNewFolder();
+    }
+    await refreshApp();
+  }catch(e){
+    // user cancelled the picker — do nothing
+  }
+}
+
+/* ---------------- seek (draggable progress) ---------------- */
+function attachSeekHandlers(trackEl, fillEl){
+  let dragging = false;
+  function seekFromEvent(e){
+    if (!audioEl.duration || !isFinite(audioEl.duration)) return;
+    const rect = trackEl.getBoundingClientRect();
+    let ratio = (e.clientX - rect.left) / rect.width;
+    ratio = Math.max(0, Math.min(1, ratio));
+    audioEl.currentTime = ratio * audioEl.duration;
+    fillEl.style.width = (ratio * 100) + '%';
+  }
+  trackEl.addEventListener('pointerdown', (e)=>{
+    e.stopPropagation();
+    dragging = true;
+    trackEl.setPointerCapture(e.pointerId);
+    seekFromEvent(e);
+  });
+  trackEl.addEventListener('pointermove', (e)=>{
+    if (!dragging) return;
+    e.stopPropagation();
+    seekFromEvent(e);
+  });
+  const endDrag = ()=>{ dragging = false; };
+  trackEl.addEventListener('pointerup', endDrag);
+  trackEl.addEventListener('pointercancel', endDrag);
+}
+
+/* ---------------- shelf ---------------- */
+function orderKey(s){
+  if (typeof s.sortOrder === 'number') return s.sortOrder;
+  return s.favorite===true ? (s.pinnedAt||0) : -(s.createdAt||0);
+}
+function shelfOrder(){
+  const favs = stories.filter(s=>s.favorite===true).sort((a,b)=>orderKey(a)-orderKey(b));
+  const rest = stories.filter(s=>s.favorite!==true).sort((a,b)=>orderKey(a)-orderKey(b));
+  return favs.concat(rest);
+}
+function renderShelf(){
+  playerView.style.display = 'none';
+  shelfView.style.display = 'block';
+  subtitle.textContent = stories.length ? 'Pick a book to hear Dad read it' : '';
+  shelfView.innerHTML = '';
+
+  if (!libraryLoaded){
+    shelfView.appendChild(el('div',{class:'empty-shelf'},[
+      el('span',{class:'big-emoji'},'⏳'),
+      el('div',{},'Loading your bookshelf...')
+    ]));
+    return;
+  }
+
+  const miniBar = renderMiniBar();
+  if (miniBar) shelfView.appendChild(miniBar);
+
+  if (stories.length === 0){
+    shelfView.appendChild(el('div',{class:'empty-shelf'},[
+      el('span',{class:'big-emoji'},'🌙'),
+      el('div',{},'No stories yet. Ask a grown-up to add one in Parent tools!'),
+      el('button',{class:'big-btn', id:'addExampleBtn', style:'margin-top:18px;', onclick: handleAddExample}, '✨ Add an example story')
+    ]));
+    return;
+  }
+
+  const grid = el('div',{class:'shelf-grid'});
+  shelfOrder().forEach(story=>{
+    const cover = el('div',{class:'cover'}, '📖');
+    coverUrlFor(story).then(url=>{
+      if (url){ cover.style.backgroundImage = `url(${url})`; cover.textContent=''; }
+    });
+    const card = el('button',{class:'book-card', onclick:()=>openPlayer(story)},[
+      cover,
+      el('div',{class:'book-title'}, story.title)
+    ]);
+    grid.appendChild(card);
+  });
+  shelfView.appendChild(grid);
+}
+
+/* ---------------- mini now-playing bar (shown on the shelf) ---------------- */
+function renderMiniBar(){
+  const active = currentStory && audioEl.getAttribute('data-story') === currentStory.id;
+  if (!active) return null;
+
+  const cover = el('div',{class:'mini-cover', onclick:()=>openPlayer(currentStory)}, '📖');
+  coverUrlFor(currentStory).then(url=>{
+    if (url){ cover.style.backgroundImage = `url(${url})`; cover.textContent=''; }
+  });
+
+  const fill = el('div',{class:'mini-fill', id:'miniFill'});
+  if (audioEl.duration) fill.style.width = (audioEl.currentTime/audioEl.duration*100) + '%';
+  const track = el('div',{class:'mini-track', id:'miniTrack'}, fill);
+  attachSeekHandlers(track, fill);
+
+  const info = el('div',{class:'mini-info'},[
+    el('div',{class:'mini-eyebrow'}, 'Now playing'),
+    el('div',{class:'mini-title', onclick:()=>openPlayer(currentStory)}, currentStory.title),
+    track
+  ]);
+
+  const playBtn = el('button',{class:'mini-play-btn', onclick:(e)=>{ e.stopPropagation(); togglePlay(); }, html: isPlaying ? pauseIcon() : playIcon()});
+
+  return el('div',{class:'mini-bar', id:'miniBar'}, [cover, info, playBtn]);
+}
+
+/* ---------------- player ---------------- */
+function openPlayer(story){
+  const sameStoryLoaded = audioEl.getAttribute('data-story') === story.id;
+  if (!sameStoryLoaded && audioEl.getAttribute('data-story')){
+    // a different story is loaded/playing in the background — stop it before switching
+    audioEl.pause();
+  }
+  currentStory = story;
+  isPlaying = sameStoryLoaded && !audioEl.paused;
+  shelfView.style.display = 'none';
+  playerView.style.display = 'flex';
+  subtitle.textContent = '';
+  renderPlayer('idle');
+  if (isPlaying) lampGlow.classList.add('playing'); else lampGlow.classList.remove('playing');
+}
+function playIcon(){ return `<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>`; }
+function pauseIcon(){ return `<svg viewBox="0 0 24 24"><path d="M6 5h4v14H6zM14 5h4v14h-4z"/></svg>`; }
+
+function renderPlayer(status){
+  playerView.innerHTML = '';
+  const cover = el('div',{class:'player-cover'}, '📖');
+  coverUrlFor(currentStory).then(url=>{
+    if (url){ cover.style.backgroundImage = `url(${url})`; cover.textContent=''; }
+  });
+
+  const btn = el('button',{class:'play-btn' + (status==='loading' ? ' loading':''), onclick: togglePlay, html: status==='loading' ? '…' : (isPlaying ? pauseIcon() : playIcon())});
+
+  const progressFill = el('div',{class:'progress-fill', id:'progressFill'});
+  const progressTrack = el('div',{class:'progress-track'}, progressFill);
+  attachSeekHandlers(progressTrack, progressFill);
+  const timeRow = el('div',{class:'time-row'},[
+    el('span',{id:'curTime'},'0:00'),
+    el('span',{id:'durTime'},'0:00')
+  ]);
+
+  let statusText = '';
+  if (status==='loading') statusText = 'Getting the story ready...';
+  if (status==='error') statusText = "Hmm, this story wouldn't load. Try again?";
+
+  playerView.appendChild(el('button',{class:'back-btn', onclick: backToShelf}, '← Back to shelf'));
+  playerView.appendChild(cover);
+  playerView.appendChild(el('div',{class:'player-title'}, currentStory.title));
+  playerView.appendChild(btn);
+  playerView.appendChild(el('div',{class:'progress-wrap'},[
+    progressTrack,
+    timeRow
+  ]));
+  playerView.appendChild(el('div',{class:'status-line'}, statusText));
+}
+
+function backToShelf(){
+  // Deliberately does NOT pause audio — playback continues via the
+  // mini "now playing" bar on the shelf.
+  shelfView.style.display = 'block';
+  playerView.style.display = 'none';
+  subtitle.textContent = stories.length ? 'Pick a book to hear Dad read it' : '';
+  renderShelf();
+}
+
+async function togglePlay(){
+  if (audioEl.getAttribute('data-story') !== currentStory.id){
+    await loadAndPlayAudio(currentStory);
+    return;
+  }
+  if (isPlaying) audioEl.pause(); else audioEl.play();
+}
+
+async function loadAndPlayAudio(story){
+  renderPlayer('loading');
+  try{
+    const fh = await story.dirHandle.getFileHandle('audio.' + story.audioExt);
+    const file = await fh.getFile();
+    if (currentAudioUrl) URL.revokeObjectURL(currentAudioUrl);
+    currentAudioUrl = URL.createObjectURL(file);
+    audioEl.src = currentAudioUrl;
+    audioEl.setAttribute('data-story', story.id);
+    renderPlayer('idle');
+    await audioEl.play();
+  }catch(e){
+    renderPlayer('error');
+  }
+}
+
+audioEl.addEventListener('play', ()=>{ isPlaying = true; lampGlow.classList.add('playing'); updatePlayIcon(); });
+audioEl.addEventListener('pause', ()=>{ isPlaying = false; lampGlow.classList.remove('playing'); updatePlayIcon(); });
+audioEl.addEventListener('ended', ()=>{ isPlaying = false; lampGlow.classList.remove('playing'); updatePlayIcon(); audioEl.currentTime = 0; });
+audioEl.addEventListener('timeupdate', ()=>{
+  const fill = document.getElementById('progressFill');
+  const cur = document.getElementById('curTime');
+  const dur = document.getElementById('durTime');
+  if (fill && audioEl.duration) fill.style.width = (audioEl.currentTime/audioEl.duration*100) + '%';
+  if (cur) cur.textContent = formatTime(audioEl.currentTime);
+  if (dur) dur.textContent = formatTime(audioEl.duration);
+  const miniFill = document.getElementById('miniFill');
+  if (miniFill && audioEl.duration) miniFill.style.width = (audioEl.currentTime/audioEl.duration*100) + '%';
+});
+function updatePlayIcon(){
+  const btn = document.querySelector('.play-btn');
+  if (btn) btn.innerHTML = isPlaying ? pauseIcon() : playIcon();
+  const miniBtn = document.querySelector('.mini-play-btn');
+  if (miniBtn) miniBtn.innerHTML = isPlaying ? pauseIcon() : playIcon();
+}
+
+/* ---------------- Parent tools gate (grown-up maths check) ---------------- */
+function makeMathGateQuestion(){
+  const a = 2 + Math.floor(Math.random()*8);
+  const b = 2 + Math.floor(Math.random()*8);
+  return { text: a + ' × ' + b, answer: a*b };
+}
+function guardParentOpen(){
+  modalRoot.innerHTML = '';
+  const overlay = el('div',{class:'modal-overlay', onclick:(e)=>{ if(e.target===overlay) closeModal(); }});
+  const modal = el('div',{class:'modal'});
+
+  modal.appendChild(el('button',{class:'btn-close', onclick: closeModal}, '×'));
+  modal.appendChild(el('h2',{}, 'Grown-ups only'));
+  modal.appendChild(el('div',{class:'hint'}, 'Just a quick check so little hands stay out of Parent tools.'));
+
+  const qLabel = el('div',{style:'font-family:Fredoka,sans-serif;font-size:1.8rem;text-align:center;margin:16px 0 10px;color:var(--ink-text);'});
+  const answerInput = el('input',{type:'text', inputmode:'numeric', autocomplete:'off', autocapitalize:'off', id:'gateAnswer', style:'display:block;width:130px;margin:0 auto;text-align:center;font-size:1.3rem;font-weight:700;'});
+  const msg = el('div',{id:'gateMsg', style:'display:none;margin-top:12px;'});
+  const openBtn = el('button',{class:'btn btn-primary', onclick: submitGateAnswer}, 'Open Parent tools');
+
+  let guessesHit = false;
+  function setQuestion(){
+    const q = makeMathGateQuestion();
+    answerInput.dataset.answer = String(q.answer);
+    qLabel.textContent = q.text + ' = ?';
+    answerInput.value = '';
+    msg.style.display = 'none';
+    answerInput.focus();
+  }
+  function submitGateAnswer(e){
+    if (e) e.preventDefault();
+    const guess = answerInput.value.trim();
+    if (guess && guess === answerInput.dataset.answer){
+      openParentModal();
+      return;
+    }
+    msg.style.display = 'block';
+    msg.className = 'inline-msg error';
+    msg.textContent = guessesHit ? "Hmm, that's not right either. Try this one:" : "Almost — that's not right. Try this one:";
+    guessesHit = true;
+    setQuestion();
+  }
+
+  answerInput.addEventListener('keydown',(e)=>{ if(e.key==='Enter') submitGateAnswer(e); });
+
+  modal.appendChild(qLabel);
+  modal.appendChild(answerInput);
+  modal.appendChild(msg);
+  modal.appendChild(el('div',{class:'modal-actions'}, [openBtn]));
+  overlay.appendChild(modal);
+  modalRoot.appendChild(overlay);
+  setQuestion();
+}
+
+/* ---------------- Parent modal ---------------- */
+parentLinkBtn.addEventListener('click', guardParentOpen);
+let pendingCoverBlob = null;
+let pendingAudioFile = null;
+
+function openParentModal(){
+  modalRoot.innerHTML = '';
+  const overlay = el('div',{class:'modal-overlay', onclick:(e)=>{ if(e.target===overlay) closeModal(); }});
+  const modal = el('div',{class:'modal'});
+
+  modal.appendChild(el('button',{class:'btn-close', onclick: closeModal}, '×'));
+  modal.appendChild(el('h2',{}, 'Add a story'));
+  modal.appendChild(el('div',{class:'hint'}, 'Upload a recording and (optionally) a cover picture. They\'ll be saved as real files on this computer.'));
+
+  const titleInput = el('input',{type:'text', id:'titleInput', placeholder:'e.g. The Gruffalo'});
+  modal.appendChild(el('label',{}, 'Book title'));
+  modal.appendChild(titleInput);
+
+  const coverBtnLabel = el('span',{},'Choose cover picture (optional)');
+  const coverInput = el('input',{type:'file', accept:'image/*', id:'coverInput', onchange: async (e)=>{
+    const f = e.target.files[0];
+    if (!f) return;
+    try{
+      pendingCoverBlob = await resizeCoverImage(f);
+      coverBtnLabel.textContent = '✓ ' + f.name;
+      coverBtn.classList.add('has-file');
+    }catch(err){ showMsg('Could not read that image.', 'error'); }
+  }});
+  const coverBtn = el('label',{class:'file-input-btn', for:'coverInput'}, [coverBtnLabel, coverInput]);
+  modal.appendChild(el('label',{}, 'Cover picture'));
+  modal.appendChild(coverBtn);
+
+  const audioBtnLabel = el('span',{},'Choose audio recording');
+  const audioInput = el('input',{type:'file', accept:'audio/*', id:'audioInput', onchange: (e)=>{
+    const f = e.target.files[0];
+    if (!f) return;
+    pendingAudioFile = f;
+    audioBtnLabel.textContent = '✓ ' + f.name;
+    audioBtn.classList.add('has-file');
+    if (!titleInput.value.trim()){
+      titleInput.value = titleFromFilename(f.name);
+    }
+  }});
+  const audioBtn = el('label',{class:'file-input-btn', for:'audioInput'}, [audioBtnLabel, audioInput]);
+  modal.appendChild(el('label',{}, 'Audio recording'));
+  modal.appendChild(audioBtn);
+
+  const msgHolder = el('div',{id:'msgHolder'});
+  const saveBtn = el('button',{class:'btn btn-primary', id:'saveStoryBtn', onclick: handleSaveStory}, 'Save story');
+  modal.appendChild(el('div',{class:'modal-actions'}, [saveBtn]));
+  modal.appendChild(msgHolder);
+
+  modal.appendChild(el('hr',{class:'divider'}));
+  modal.appendChild(el('h2',{style:'font-size:1.05rem;'}, 'Add multiple recordings at once'));
+  modal.appendChild(el('div',{class:'hint'}, "Great for a batch of recordings — the title for each is taken from its file name. Add cover pictures afterward by editing each story below."));
+
+  const batchLabel = el('span',{},'Choose audio files');
+  const batchInput = el('input',{type:'file', accept:'audio/*', multiple:'multiple', id:'batchAudioInput', onchange: (e)=>{
+    const n = e.target.files.length;
+    batchLabel.textContent = n ? `✓ ${n} file${n===1?'':'s'} selected` : 'Choose audio files';
+    batchBtn.classList.toggle('has-file', n>0);
+  }});
+  const batchBtn = el('label',{class:'file-input-btn', for:'batchAudioInput'}, [batchLabel, batchInput]);
+  modal.appendChild(el('label',{}, 'Audio recordings'));
+  modal.appendChild(batchBtn);
+
+  const batchMsgHolder = el('div',{id:'batchMsgHolder'});
+  const batchProgressFill = el('div',{class:'progress-mini-fill', id:'batchProgressFill'});
+  const batchProgressWrap = el('div',{class:'progress-mini', id:'batchProgressWrap', style:'display:none;'}, batchProgressFill);
+  const batchProgressLabel = el('div',{id:'batchProgressLabel', style:'font-size:.78rem;color:#6b6684;margin-top:6px;'});
+  const batchSaveBtn = el('button',{class:'btn btn-primary', id:'batchSaveBtn', onclick: handleBatchAdd}, 'Add these stories');
+  modal.appendChild(el('div',{class:'modal-actions'}, [batchSaveBtn]));
+  modal.appendChild(batchProgressWrap);
+  modal.appendChild(batchProgressLabel);
+  modal.appendChild(batchMsgHolder);
+
+  modal.appendChild(el('hr',{class:'divider'}));
+  modal.appendChild(el('h2',{style:'font-size:1.05rem;'}, `Your stories (${stories.length})`));
+  const list = el('div',{id:'storyList'});
+  renderStoryList(list);
+  modal.appendChild(list);
+
+  modal.appendChild(el('hr',{class:'divider'}));
+  modal.appendChild(el('div',{class:'folder-row'},[
+    el('span',{}, '📁 ' + (rootHandle ? rootHandle.name : 'no folder')),
+    el('button',{onclick: async ()=>{ await chooseNewFolder(); closeModal(); await refreshApp(); }}, 'Change folder')
+  ]));
+
+  overlay.appendChild(modal);
+  modalRoot.appendChild(overlay);
+  pendingCoverBlob = null;
+  pendingAudioFile = null;
+}
+function closeModal(){ modalRoot.innerHTML = ''; }
+
+function renderStoryList(container){
+  container.innerHTML = '';
+  if (stories.length === 0){
+    container.appendChild(el('div',{style:'font-size:.85rem;color:#8a84a0;padding:10px 0;'}, 'No stories yet.'));
+    return;
+  }
+  const ordered = shelfOrder();
+  ordered.forEach((story, i)=>{
+    const prevSameGroup = i>0 && (ordered[i-1].favorite===true) === (story.favorite===true);
+    const nextSameGroup = i<ordered.length-1 && (ordered[i+1].favorite===true) === (story.favorite===true);
+    const thumb = el('div',{class:'fallback'},'📖');
+    coverUrlFor(story).then(url=>{
+      if (url){
+        const img = el('img',{src:url});
+        thumb.replaceWith(img);
+      }
+    });
+    const moveUp = el('button',{class:'move-btn', title:'Move this book up', onclick: ()=>handleMoveStory(story.id, -1), ...(prevSameGroup?{}:{disabled:'disabled'})}, '▲');
+    const moveDown = el('button',{class:'move-btn', title:'Move this book down', onclick: ()=>handleMoveStory(story.id, 1), ...(nextSameGroup?{}:{disabled:'disabled'})}, '▼');
+    const row = el('div',{class:'story-row'},[
+      thumb,
+      el('div',{class:'name'}, story.title),
+      moveUp,
+      moveDown,
+      el('button',{class:'fav-btn' + (story.favorite===true?' is-fav':''), title: story.favorite===true?'Remove from favourites':'Add to favourites', onclick: ()=>handleToggleFavorite(story.id)}, story.favorite===true?'★':'☆'),
+      el('button',{class:'edit-btn', onclick: ()=>openEditModal(story)}, '✏️'),
+      el('button',{onclick: ()=>handleDeleteStory(story.id)}, '🗑')
+    ]);
+    container.appendChild(row);
+  });
+}
+
+function showMsg(text, type, holderId){
+  const holder = document.getElementById(holderId || 'msgHolder');
+  if (!holder) return;
+  holder.innerHTML = '';
+  if (text) holder.appendChild(el('div',{class:'inline-msg ' + type}, text));
+}
+
+async function writeStoryToFolder({title, audioFile, audioExt, mime, coverBlob}){
+  const id = await getUniqueDirName(slugifyTitle(title));
+  const storyDir = await rootHandle.getDirectoryHandle(id, {create:true});
+
+  const audioFileHandle = await storyDir.getFileHandle('audio.' + audioExt, {create:true});
+  const audioWritable = await audioFileHandle.createWritable();
+  await audioWritable.write(audioFile);
+  await audioWritable.close();
+
+  let hasCover = false;
+  if (coverBlob){
+    const coverFileHandle = await storyDir.getFileHandle('cover.jpg', {create:true});
+    const coverWritable = await coverFileHandle.createWritable();
+    await coverWritable.write(coverBlob);
+    await coverWritable.close();
+    hasCover = true;
+  }
+
+  const meta = { id, title, mime, audioExt, hasCover, createdAt: Date.now() };
+  const metaFileHandle = await storyDir.getFileHandle('meta.json', {create:true});
+  const metaWritable = await metaFileHandle.createWritable();
+  await metaWritable.write(JSON.stringify(meta));
+  await metaWritable.close();
+  return id;
+}
+
+/* ---------------- example story generator ---------------- */
+function makeExampleCoverBlob(){
+  return new Promise(resolve=>{
+    const canvas = document.createElement('canvas');
+    canvas.width = 500; canvas.height = 650;
+    const ctx = canvas.getContext('2d');
+    const grad = ctx.createLinearGradient(0,0,0,650);
+    grad.addColorStop(0,'#F4A94B');
+    grad.addColorStop(1,'#E8735B');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0,0,500,650);
+    ctx.fillStyle = 'rgba(255,255,255,0.15)';
+    ctx.beginPath(); ctx.arc(250,230,150,0,Math.PI*2); ctx.fill();
+    ctx.textAlign = 'center';
+    ctx.font = '160px serif';
+    ctx.fillText('📖', 250, 300);
+    ctx.fillStyle = '#FFF8EC';
+    ctx.font = '700 42px Nunito, sans-serif';
+    ctx.fillText('Example', 250, 450);
+    ctx.fillText('Story', 250, 500);
+    ctx.font = '600 22px Nunito, sans-serif';
+    ctx.fillStyle = 'rgba(255,255,255,0.85)';
+    ctx.fillText('tap \u25b6 to try it out', 250, 560);
+    canvas.toBlob(b=>resolve(b), 'image/jpeg', 0.9);
+  });
+}
+function encodeWAV(samples, sampleRate){
+  const bytesPerSample = 2;
+  const buffer = new ArrayBuffer(44 + samples.length*bytesPerSample);
+  const view = new DataView(buffer);
+  function writeString(offset,str){ for(let i=0;i<str.length;i++) view.setUint8(offset+i, str.charCodeAt(i)); }
+  writeString(0,'RIFF');
+  view.setUint32(4, 36+samples.length*bytesPerSample, true);
+  writeString(8,'WAVE');
+  writeString(12,'fmt ');
+  view.setUint32(16,16,true);
+  view.setUint16(20,1,true);
+  view.setUint16(22,1,true);
+  view.setUint32(24,sampleRate,true);
+  view.setUint32(28, sampleRate*bytesPerSample, true);
+  view.setUint16(32, bytesPerSample, true);
+  view.setUint16(34, 16, true);
+  writeString(36,'data');
+  view.setUint32(40, samples.length*bytesPerSample, true);
+  let offset = 44;
+  for (let i=0;i<samples.length;i++, offset+=2){
+    const s = Math.max(-1, Math.min(1, samples[i]));
+    view.setInt16(offset, s<0 ? s*0x8000 : s*0x7FFF, true);
+  }
+  return new Blob([view], {type:'audio/wav'});
+}
+async function makeExampleAudioBlob(){
+  const sampleRate = 44100;
+  const duration = 2.3;
+  const ctx = new OfflineAudioContext(1, Math.ceil(sampleRate*duration), sampleRate);
+  const notes = [523.25, 659.25, 783.99, 1046.5]; // a happy little C major arpeggio
+  notes.forEach((freq, i)=>{
+    const osc = ctx.createOscillator();
+    osc.type = 'sine';
+    osc.frequency.value = freq;
+    const gain = ctx.createGain();
+    const start = i * 0.35;
+    const dur = 0.4;
+    gain.gain.setValueAtTime(0.0001, start);
+    gain.gain.linearRampToValueAtTime(0.3, start + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.001, start + dur);
+    osc.connect(gain).connect(ctx.destination);
+    osc.start(start);
+    osc.stop(start + dur + 0.05);
+  });
+  const rendered = await ctx.startRendering();
+  return encodeWAV(rendered.getChannelData(0), sampleRate);
+}
+async function handleAddExample(){
+  const btn = document.getElementById('addExampleBtn');
+  if (btn){ btn.disabled = true; btn.textContent = 'Adding...'; }
+  try{
+    const [coverBlob, audioBlob] = await Promise.all([makeExampleCoverBlob(), makeExampleAudioBlob()]);
+    await writeStoryToFolder({ title:'Example Story (tap to test)', audioFile: audioBlob, audioExt:'wav', mime:'audio/wav', coverBlob });
+    stories = await loadLibraryFromFolder();
+    renderShelf();
+  }catch(e){
+    if (btn){ btn.disabled = false; btn.textContent = '\u2728 Add an example story'; }
+  }
+}
+
+async function handleSaveStory(){
+  const title = document.getElementById('titleInput').value.trim();
+  if (!title){ showMsg('Please give the story a title.', 'error'); return; }
+  if (!pendingAudioFile){ showMsg('Please choose an audio recording.', 'error'); return; }
+
+  const saveBtn = document.getElementById('saveStoryBtn');
+  saveBtn.disabled = true;
+  saveBtn.textContent = 'Saving...';
+  showMsg('', '');
+
+  try{
+    await writeStoryToFolder({
+      title,
+      audioFile: pendingAudioFile,
+      audioExt: extOf(pendingAudioFile.name, 'mp3'),
+      mime: pendingAudioFile.type || 'audio/mpeg',
+      coverBlob: pendingCoverBlob
+    });
+
+    showMsg('Saved! "' + title + '" is on the shelf.', 'ok');
+    document.getElementById('titleInput').value = '';
+    document.getElementById('coverInput').value = '';
+    document.getElementById('audioInput').value = '';
+    pendingCoverBlob = null;
+    pendingAudioFile = null;
+    document.querySelector('label[for=coverInput] span').textContent = 'Choose cover picture (optional)';
+    document.querySelector('label[for=coverInput]').classList.remove('has-file');
+    document.querySelector('label[for=audioInput] span').textContent = 'Choose audio recording';
+    document.querySelector('label[for=audioInput]').classList.remove('has-file');
+
+    stories = await loadLibraryFromFolder();
+    renderStoryList(document.getElementById('storyList'));
+    renderShelf();
+  }catch(e){
+    showMsg('Something went wrong saving that story. Please try again.', 'error');
+  }finally{
+    saveBtn.disabled = false;
+    saveBtn.textContent = 'Save story';
+  }
+}
+
+async function handleBatchAdd(){
+  const input = document.getElementById('batchAudioInput');
+  const files = Array.from((input && input.files) || []);
+  if (files.length === 0){ showMsg('Please choose one or more audio files.', 'error', 'batchMsgHolder'); return; }
+
+  const btn = document.getElementById('batchSaveBtn');
+  const progressWrap = document.getElementById('batchProgressWrap');
+  const progressFill = document.getElementById('batchProgressFill');
+  const progressLabel = document.getElementById('batchProgressLabel');
+
+  btn.disabled = true;
+  btn.textContent = 'Adding...';
+  showMsg('', '', 'batchMsgHolder');
+  progressWrap.style.display = 'block';
+
+  let added = 0, failed = 0;
+  for (let i=0;i<files.length;i++){
+    const f = files[i];
+    progressLabel.textContent = `Adding ${i+1} of ${files.length}: ${f.name}`;
+    try{
+      await writeStoryToFolder({
+        title: titleFromFilename(f.name),
+        audioFile: f,
+        audioExt: extOf(f.name, 'mp3'),
+        mime: f.type || 'audio/mpeg',
+        coverBlob: null
+      });
+      added++;
+    }catch(e){
+      failed++;
+    }
+    progressFill.style.width = Math.round(((i+1)/files.length)*100) + '%';
+  }
+
+  stories = await loadLibraryFromFolder();
+  renderStoryList(document.getElementById('storyList'));
+  renderShelf();
+
+  input.value = '';
+  const batchLabelSpan = document.querySelector('label[for=batchAudioInput] span');
+  if (batchLabelSpan) batchLabelSpan.textContent = 'Choose audio files';
+  const batchLabelEl = document.querySelector('label[for=batchAudioInput]');
+  if (batchLabelEl) batchLabelEl.classList.remove('has-file');
+
+  let msg = `Added ${added} ${added===1?'story':'stories'} — pick each one's ✏️ below to add a cover picture.`;
+  if (failed) msg = `Added ${added}, but ${failed} failed. ` + (added ? "Pick each added story's ✏️ below to add a cover picture." : 'Please try again.');
+  showMsg(msg, failed ? 'error' : 'ok', 'batchMsgHolder');
+
+  progressWrap.style.display = 'none';
+  progressFill.style.width = '0%';
+  btn.disabled = false;
+  btn.textContent = 'Add these stories';
+}
+
+/* ---------------- Edit story ---------------- */
+let editingStory = null;
+let editPendingCoverBlob = null;
+let editPendingCoverRemoved = false;
+let editPendingAudioFile = null;
+
+function openEditModal(story){
+  editingStory = story;
+  editPendingCoverBlob = null;
+  editPendingCoverRemoved = false;
+  editPendingAudioFile = null;
+
+  modalRoot.innerHTML = '';
+  const overlay = el('div',{class:'modal-overlay', onclick:(e)=>{ if(e.target===overlay) closeModal(); }});
+  const modal = el('div',{class:'modal'});
+
+  modal.appendChild(el('button',{class:'btn-close', onclick: closeModal}, '×'));
+  modal.appendChild(el('h2',{}, 'Edit story'));
+  modal.appendChild(el('div',{class:'hint'}, "Change the title, swap the cover picture, or replace the recording. Leave anything alone to keep it as is."));
+
+  const titleInput = el('input',{type:'text', id:'editTitleInput', value: story.title});
+  modal.appendChild(el('label',{}, 'Book title'));
+  modal.appendChild(titleInput);
+
+  /* cover */
+  modal.appendChild(el('label',{}, 'Cover picture'));
+  const coverThumb = el('div',{class:'fallback', style:'width:44px;height:58px;'}, '📖');
+  const coverPreviewWrap = el('div',{style:'display:flex;align-items:center;gap:10px;margin-bottom:8px;'}, [coverThumb]);
+  coverUrlFor(story).then(url=>{
+    if (url){
+      const img = el('img',{src:url, style:'width:44px;height:58px;border-radius:5px;object-fit:cover;'});
+      coverThumb.replaceWith(img);
+    }
+  });
+  if (story.hasCover){
+    const removeCoverBtn = el('button',{type:'button', class:'btn btn-secondary', style:'padding:6px 10px;font-size:.75rem;', onclick: ()=>{
+      editPendingCoverRemoved = true;
+      editPendingCoverBlob = null;
+      const current = coverPreviewWrap.querySelector('img, .fallback');
+      if (current) current.replaceWith(el('div',{class:'fallback', style:'width:44px;height:58px;'},'📖'));
+    }}, 'Remove cover');
+    coverPreviewWrap.appendChild(removeCoverBtn);
+  }
+  modal.appendChild(coverPreviewWrap);
+
+  const coverBtnLabel = el('span',{},'Choose new cover picture');
+  const coverInput = el('input',{type:'file', accept:'image/*', id:'editCoverInput', onchange: async (e)=>{
+    const f = e.target.files[0];
+    if (!f) return;
+    try{
+      editPendingCoverBlob = await resizeCoverImage(f);
+      editPendingCoverRemoved = false;
+      coverBtnLabel.textContent = '✓ ' + f.name;
+      coverBtn.classList.add('has-file');
+      const current = coverPreviewWrap.querySelector('img, .fallback');
+      if (current) current.replaceWith(el('img',{src:URL.createObjectURL(editPendingCoverBlob), style:'width:44px;height:58px;border-radius:5px;object-fit:cover;'}));
+    }catch(err){ showMsg('Could not read that image.', 'error'); }
+  }});
+  const coverBtn = el('label',{class:'file-input-btn', for:'editCoverInput'}, [coverBtnLabel, coverInput]);
+  modal.appendChild(coverBtn);
+
+  /* audio */
+  modal.appendChild(el('label',{}, 'Audio recording'));
+  modal.appendChild(el('div',{style:'font-size:.8rem;color:#6b6684;margin-bottom:8px;'}, 'Current file: audio.' + story.audioExt));
+  const audioBtnLabel = el('span',{},'Choose replacement recording (optional)');
+  const audioInput = el('input',{type:'file', accept:'audio/*', id:'editAudioInput', onchange: (e)=>{
+    const f = e.target.files[0];
+    if (!f) return;
+    editPendingAudioFile = f;
+    audioBtnLabel.textContent = '✓ ' + f.name;
+    audioBtn.classList.add('has-file');
+  }});
+  const audioBtn = el('label',{class:'file-input-btn', for:'editAudioInput'}, [audioBtnLabel, audioInput]);
+  modal.appendChild(audioBtn);
+
+  const msgHolder = el('div',{id:'msgHolder'});
+  const saveBtn = el('button',{class:'btn btn-primary', onclick: handleSaveEdit}, 'Save changes');
+  const cancelBtn = el('button',{class:'btn btn-secondary', onclick: openParentModal}, 'Cancel');
+  modal.appendChild(el('div',{class:'modal-actions'}, [cancelBtn, saveBtn]));
+  modal.appendChild(msgHolder);
+
+  overlay.appendChild(modal);
+  modalRoot.appendChild(overlay);
+}
+
+async function handleSaveEdit(){
+  const story = editingStory;
+  const title = document.getElementById('editTitleInput').value.trim();
+  if (!title){ showMsg('Please give the story a title.', 'error'); return; }
+
+  const saveBtn = document.querySelector('.btn-primary');
+  saveBtn.disabled = true;
+  saveBtn.textContent = 'Saving...';
+  showMsg('', '');
+
+  try{
+    const storyDir = story.dirHandle;
+    let hasCover = story.hasCover;
+    let audioExt = story.audioExt;
+    let mime = story.mime;
+
+    if (editPendingCoverBlob){
+      const coverFileHandle = await storyDir.getFileHandle('cover.jpg', {create:true});
+      const w = await coverFileHandle.createWritable();
+      await w.write(editPendingCoverBlob);
+      await w.close();
+      hasCover = true;
+    } else if (editPendingCoverRemoved && story.hasCover){
+      try{ await storyDir.removeEntry('cover.jpg'); }catch(e){}
+      hasCover = false;
+    }
+
+    if (editPendingAudioFile){
+      const newExt = extOf(editPendingAudioFile.name, 'mp3');
+      if (newExt !== story.audioExt){
+        try{ await storyDir.removeEntry('audio.' + story.audioExt); }catch(e){}
+      }
+      const audioFileHandle = await storyDir.getFileHandle('audio.' + newExt, {create:true});
+      const w = await audioFileHandle.createWritable();
+      await w.write(editPendingAudioFile);
+      await w.close();
+      audioExt = newExt;
+      mime = editPendingAudioFile.type || 'audio/mpeg';
+    }
+
+    const meta = { id: story.id, title, mime, audioExt, hasCover, createdAt: story.createdAt, favorite: !!story.favorite, pinnedAt: story.pinnedAt || 0 };
+    if (typeof story.sortOrder === 'number') meta.sortOrder = story.sortOrder;
+    const metaFileHandle = await storyDir.getFileHandle('meta.json', {create:true});
+    const w = await metaFileHandle.createWritable();
+    await w.write(JSON.stringify(meta));
+    await w.close();
+
+    if (coverUrlCache.has(story.id)){ URL.revokeObjectURL(coverUrlCache.get(story.id)); coverUrlCache.delete(story.id); }
+    if (audioEl.getAttribute('data-story') === story.id){
+      audioEl.pause();
+      audioEl.removeAttribute('src');
+      audioEl.removeAttribute('data-story');
+    }
+
+    stories = await loadLibraryFromFolder();
+    showMsg('Saved changes to "' + title + '".', 'ok');
+    renderShelf();
+  }catch(e){
+    showMsg('Something went wrong saving those changes. Please try again.', 'error');
+  }finally{
+    saveBtn.disabled = false;
+    saveBtn.textContent = 'Save changes';
+  }
+}
+
+async function handleToggleFavorite(id){
+  const story = stories.find(s=>s.id===id);
+  if (!story) return;
+  const newFav = !(story.favorite===true);
+  const meta = {
+    id: story.id, title: story.title, mime: story.mime,
+    audioExt: story.audioExt, hasCover: story.hasCover, createdAt: story.createdAt,
+    favorite: newFav, pinnedAt: newFav ? Date.now() : 0
+  };
+  if (typeof story.sortOrder === 'number') meta.sortOrder = story.sortOrder;
+  try{
+    const mfh = await story.dirHandle.getFileHandle('meta.json', {create:true});
+    const w = await mfh.createWritable();
+    await w.write(JSON.stringify(meta));
+    await w.close();
+  }catch(e){ showMsg('Could not update the favourite. Please try again.', 'error'); return; }
+  stories = await loadLibraryFromFolder();
+  renderStoryList(document.getElementById('storyList'));
+  renderShelf();
+}
+
+async function handleMoveStory(id, dir){
+  const list = shelfOrder();
+  const idx = list.findIndex(s=>s.id===id);
+  if (idx < 0) return;
+  const isFav = list[idx].favorite===true;
+  const members = list.filter(s=>(s.favorite===true)===isFav);
+  const mIdx = members.findIndex(s=>s.id===id);
+  const tIdx = mIdx + dir;
+  if (tIdx < 0 || tIdx >= members.length) return;
+  const newArr = members.slice();
+  const [moved] = newArr.splice(mIdx,1);
+  newArr.splice(tIdx,0,moved);
+  for (let i=0;i<newArr.length;i++){
+    const st = newArr[i];
+    if (orderKey(st) === i) continue;
+    const meta = {
+      id: st.id, title: st.title, mime: st.mime, audioExt: st.audioExt,
+      hasCover: st.hasCover, createdAt: st.createdAt,
+      favorite: !!st.favorite, pinnedAt: st.pinnedAt || 0, sortOrder: i
+    };
+    try{
+      const mfh = await st.dirHandle.getFileHandle('meta.json', {create:true});
+      const w = await mfh.createWritable();
+      await w.write(JSON.stringify(meta));
+      await w.close();
+    }catch(e){ showMsg('Could not save the new order. Please try again.', 'error'); return; }
+  }
+  stories = await loadLibraryFromFolder();
+  renderStoryList(document.getElementById('storyList'));
+  renderShelf();
+}
+
+async function handleDeleteStory(id){
+  const story = stories.find(s=>s.id===id);
+  if (!story) return;
+  if (!confirm(`Delete "${story.title}"? This removes its files from the folder and can't be undone.`)) return;
+  try{
+    await rootHandle.removeEntry(id, {recursive:true});
+  }catch(e){ /* ignore */ }
+  if (coverUrlCache.has(id)){ URL.revokeObjectURL(coverUrlCache.get(id)); coverUrlCache.delete(id); }
+  if (audioEl.getAttribute('data-story') === id){
+    audioEl.pause();
+    if (currentAudioUrl){ URL.revokeObjectURL(currentAudioUrl); currentAudioUrl = null; }
+    audioEl.removeAttribute('src');
+    audioEl.removeAttribute('data-story');
+    currentStory = null;
+  }
+  stories = stories.filter(s=>s.id!==id);
+  renderStoryList(document.getElementById('storyList'));
+  renderShelf();
+}
+
+/* ---------------- init ---------------- */
+(async function init(){
+  renderShelf();
+  if (SUPPORTS_FS_ACCESS){
+    await tryAutoConnect();
+  }
+  await refreshApp();
+})();
+</script>
+</body>
+</html>

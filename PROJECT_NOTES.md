@@ -477,6 +477,18 @@ website can finally run on devices that lack the File System Access API
 - Online stories get ★ / ▲ / ▼ in the story list, but **no ✏️ or 🗑** (editing
   happens on the computer, in the repo folder).
 
+### Gotcha: cover URLs with parentheses (fixed 2026-09-25)
+
+- Story titles containing parentheses (e.g. `Example Story (Online)`,
+  `S Banquise (Mini Loup) 12m11`) produce CSS like
+  `url(https://…/Example%20Story%20(Online)/cover.jpg)`, which browsers
+  **silently reject** — the cover div ends up empty with no background image
+  and no error.
+- Fix: always double-quote the URL when setting `backgroundImage`:
+  `` `url("${url}")` ``. In `index.html` this is done at the 3 call sites in
+  `renderShelf`, `renderMiniBar` and `renderPlayer`. `<img src>` elements
+  (story-list / parent-mode previews) are unaffected.
+
 ### Code locations
 
 - New section: `/* online library ... */` after `configGet` (source helpers,

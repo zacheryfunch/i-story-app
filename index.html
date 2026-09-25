@@ -841,7 +841,7 @@ function renderShelf(){
   shelfOrder().forEach(story=>{
     const cover = el('div',{class:'cover'}, '📖');
     coverUrlFor(story).then(url=>{
-      if (url){ cover.style.backgroundImage = `url(${url})`; cover.textContent=''; }
+if (url){ cover.style.backgroundImage = `url("${url}")`; cover.textContent=''; }
     });
     const card = el('button',{class:'book-card', onclick:()=>openPlayer(story)},[
       cover,
@@ -859,7 +859,7 @@ function renderMiniBar(){
 
   const cover = el('div',{class:'mini-cover', onclick:()=>openPlayer(currentStory)}, '📖');
   coverUrlFor(currentStory).then(url=>{
-    if (url){ cover.style.backgroundImage = `url(${url})`; cover.textContent=''; }
+    if (url){ cover.style.backgroundImage = `url("${url}")`; cover.textContent=''; }
   });
 
   const fill = el('div',{class:'mini-fill', id:'miniFill'});
@@ -900,7 +900,7 @@ function renderPlayer(status){
   playerView.innerHTML = '';
   const cover = el('div',{class:'player-cover'}, '📖');
   coverUrlFor(currentStory).then(url=>{
-    if (url){ cover.style.backgroundImage = `url(${url})`; cover.textContent=''; }
+    if (url){ cover.style.backgroundImage = `url("${url}")`; cover.textContent=''; }
   });
 
   const btn = el('button',{class:'play-btn' + (status==='loading' ? ' loading':''), onclick: togglePlay, html: status==='loading' ? '…' : (isPlaying ? pauseIcon() : playIcon())});
